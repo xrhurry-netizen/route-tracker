@@ -1,18 +1,17 @@
 <!DOCTYPE html>
-
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>路线记录仪</title>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
-<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Noto+Sans+SC:wght@300;400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.min.css"/>
+
 <style>
 :root {
   --bg:#0d0f14; --surface:#161923; --surface2:#1e2333; --border:#2a3045;
   --accent:#00e5a0; --accent2:#00b8ff; --danger:#ff4757; --warning:#ffa502;
   --text:#e8ecf5; --muted:#6b7594;
-  --mono:'Space Mono',monospace; --sans:'Noto Sans SC',sans-serif;
+  --mono:ui-monospace,'SF Mono','Menlo','Consolas',monospace; --sans:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Hiragino Sans GB',sans-serif;
 }
 *{box-sizing:border-box;margin:0;padding:0;}
 html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);font-family:var(--sans);}
@@ -60,7 +59,7 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
 .hdel:active{border-color:var(--danger);}
 #toast{position:fixed;bottom:130px;left:50%;transform:translateX(-50%) translateY(16px);background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:10px 20px;border-radius:20px;font-size:13px;opacity:0;pointer-events:none;transition:all .3s;z-index:3000;white-space:nowrap;max-width:92vw;text-align:center;word-break:keep-all;}
 #toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
-.leaflet-tile-pane{filter:brightness(.75) saturate(.7);}
+.leaflet-tile-pane{}
 .leaflet-control-attribution{display:none!important;}
 .leaflet-control-zoom a{background:var(--surface)!important;color:var(--text)!important;border-color:var(--border)!important;}
 </style>
@@ -104,12 +103,11 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
 </div>
 <div id="toast"></div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-
+<script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.min.js"></script>
 <script>
 /* ===== MAP ===== */
 var map = L.map('map', {zoomControl:true, attributionControl:false});
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_matter/{z}/{x}/{y}.png',{subdomains:'abcd',maxZoom:20}).addTo(map);
 map.setView([49.8951, -97.1384], 13);
 
 /* ===== STATE ===== */
@@ -204,136 +202,135 @@ function mkPulse(){return L.divIcon({html:'<div style="width:14px;height:14px;bo
 
 /* ===== GPS HANDLER ===== */
 function onPos(pos){
-if(!tracking)return;
-var lat=pos.coords.latitude,lng=pos.coords.longitude,acc=pos.coords.accuracy,spd=pos.coords.speed,now=Date.now();
-document.getElementById(‘g-acc’).textContent=acc?Math.round(acc):’?’;
-document.getElementById(‘g-time’).textContent=new Date().toLocaleTimeString(‘zh-CN’,{hour:‘2-digit’,minute:‘2-digit’,second:‘2-digit’});
-hzBuf.push(now);hzBuf=hzBuf.filter(function(t){return now-t<5000;});
-document.getElementById(‘g-hz’).textContent=(hzBuf.length/5).toFixed(1);
-var lim=points.length<3?100:50;if(acc&&acc>lim)return;
-if(now-lastPtTime<800)return;
-var pt={lat:lat,lng:lng,time:now,acc:acc||0};
-if(points.length===0){
-map.setView([lat,lng],17);
-mStart=L.marker([lat,lng],{icon:mkIco(’#00b8ff’,13),zIndexOffset:10}).addTo(map).bindPopup(‘起点’).openPopup();
-}else{
-var prev=points[points.length-1],d=hav(prev,pt);
-if(d<0.001&&acc>=(prev.acc||999))return;
-totalDist+=d;
-var kmh=(spd!==null&&spd!==undefined&&spd>=0)?spd*3.6:(d/((now-prev.time)/3600000));
-document.getElementById(‘s-spd’).textContent=Math.min(kmh,200).toFixed(1);
+  if(!tracking)return;
+  var lat=pos.coords.latitude,lng=pos.coords.longitude,acc=pos.coords.accuracy,spd=pos.coords.speed,now=Date.now();
+  document.getElementById('g-acc').textContent=acc?Math.round(acc):'?';
+  document.getElementById('g-time').textContent=new Date().toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  hzBuf.push(now);hzBuf=hzBuf.filter(function(t){return now-t<5000;});
+  document.getElementById('g-hz').textContent=(hzBuf.length/5).toFixed(1);
+  var lim=points.length<3?100:50;if(acc&&acc>lim)return;
+  if(now-lastPtTime<800)return;
+  var pt={lat:lat,lng:lng,time:now,acc:acc||0};
+  if(points.length===0){
+    map.setView([lat,lng],17);
+    mStart=L.marker([lat,lng],{icon:mkIco('#00b8ff',13),zIndexOffset:10}).addTo(map).bindPopup('起点').openPopup();
+  }else{
+    var prev=points[points.length-1],d=hav(prev,pt);
+    if(d<0.001&&acc>=(prev.acc||999))return;
+    totalDist+=d;
+    var kmh=(spd!==null&&spd!==undefined&&spd>=0)?spd*3.6:(d/((now-prev.time)/3600000));
+    document.getElementById('s-spd').textContent=Math.min(kmh,200).toFixed(1);
+  }
+  points.push(pt);lastPtTime=now;
+  polyline.addLatLng([lat,lng]);
+  if(mCur)map.removeLayer(mCur);
+  mCur=L.marker([lat,lng],{icon:mkPulse(),zIndexOffset:20}).addTo(map);
+  if(!map.getBounds().contains([lat,lng]))map.panTo([lat,lng]);
+  document.getElementById('s-dist').textContent=totalDist.toFixed(2);
+  document.getElementById('s-pts').textContent=points.length;
 }
-points.push(pt);lastPtTime=now;
-polyline.addLatLng([lat,lng]);
-if(mCur)map.removeLayer(mCur);
-mCur=L.marker([lat,lng],{icon:mkPulse(),zIndexOffset:20}).addTo(map);
-if(!map.getBounds().contains([lat,lng]))map.panTo([lat,lng]);
-document.getElementById(‘s-dist’).textContent=totalDist.toFixed(2);
-document.getElementById(‘s-pts’).textContent=points.length;
-}
-function onErr(err){var m={1:‘定位权限被拒绝’,2:‘无法获取位置信号’,3:‘定位超时’};toast(’⚠️ ’+(m[err.code]||‘定位错误’),4000);}
+function onErr(err){var m={1:'定位权限被拒绝',2:'无法获取位置信号',3:'定位超时'};toast('⚠️ '+(m[err.code]||'定位错误'),4000);}
 
 /* ===== COMMANDS ===== */
 function cmdStart(){
-if(!navigator.geolocation){toast(‘⚠️ 浏览器不支持定位’);return;}
-tone([440,660,880],0.11,‘triangle’,0.18);flash(‘btn-start’,‘▶ 记录中’);
-tracking=true;points=[];totalDist=0;lastPtTime=0;hzBuf=[];
-if(polyline){map.removeLayer(polyline);polyline=null;}
-if(mStart){map.removeLayer(mStart);mStart=null;}
-if(mEnd){map.removeLayer(mEnd);mEnd=null;}
-if(mCur){map.removeLayer(mCur);mCur=null;}
-polyline=L.polyline([],{color:’#00e5a0’,weight:4,opacity:0.92,lineJoin:‘round’,lineCap:‘round’}).addTo(map);
-startTime=Date.now();
-timerIv=setInterval(function(){if(startTime)document.getElementById(‘s-time’).textContent=fmtT(Date.now()-startTime);},500);
-document.getElementById(‘status-dot’).className=‘on’;
-document.getElementById(‘s-dist’).textContent=‘0.00’;
-document.getElementById(‘s-pts’).textContent=‘0’;
-document.getElementById(‘s-spd’).textContent=‘0.0’;
-setMode(‘记录中’);setBtns(‘run’);
-watchId=navigator.geolocation.watchPosition(onPos,onErr,{enableHighAccuracy:true,timeout:10000,maximumAge:0});
-backupTimer=setInterval(function(){navigator.geolocation.getCurrentPosition(onPos,function(){},{enableHighAccuracy:true,timeout:8000,maximumAge:1500});},2000);
-reqWake();startSilent();
-toast(‘📍 高精度记录已开始’);
+  if(!navigator.geolocation){toast('⚠️ 浏览器不支持定位');return;}
+  tone([440,660,880],0.11,'triangle',0.18);flash('btn-start','▶ 记录中');
+  tracking=true;points=[];totalDist=0;lastPtTime=0;hzBuf=[];
+  if(polyline){map.removeLayer(polyline);polyline=null;}
+  if(mStart){map.removeLayer(mStart);mStart=null;}
+  if(mEnd){map.removeLayer(mEnd);mEnd=null;}
+  if(mCur){map.removeLayer(mCur);mCur=null;}
+  polyline=L.polyline([],{color:'#00e5a0',weight:4,opacity:0.92,lineJoin:'round',lineCap:'round'}).addTo(map);
+  startTime=Date.now();
+  timerIv=setInterval(function(){if(startTime)document.getElementById('s-time').textContent=fmtT(Date.now()-startTime);},500);
+  document.getElementById('status-dot').className='on';
+  document.getElementById('s-dist').textContent='0.00';
+  document.getElementById('s-pts').textContent='0';
+  document.getElementById('s-spd').textContent='0.0';
+  setMode('记录中');setBtns('run');
+  watchId=navigator.geolocation.watchPosition(onPos,onErr,{enableHighAccuracy:true,timeout:10000,maximumAge:0});
+  backupTimer=setInterval(function(){navigator.geolocation.getCurrentPosition(onPos,function(){},{enableHighAccuracy:true,timeout:8000,maximumAge:1500});},2000);
+  reqWake();startSilent();
+  toast('📍 高精度记录已开始');
 }
 
 function cmdStop(){
-tone([880,550,330],0.11,‘triangle’,0.18);flash(‘btn-stop’,‘■ 已停止’);
-if(watchId!==null){navigator.geolocation.clearWatch(watchId);watchId=null;}
-clearInterval(backupTimer);backupTimer=null;
-clearInterval(timerIv);timerIv=null;
-stopSilent();relWake();
-tracking=false;
-document.getElementById(‘status-dot’).className=‘off’;setMode(‘已停止’);setBtns(‘done’);
-if(points.length>=2){
-var last=points[points.length-1];
-mEnd=L.marker([last.lat,last.lng],{icon:mkIco(’#ff4757’,13)}).addTo(map).bindPopup(‘终点’).openPopup();
-map.fitBounds(polyline.getBounds(),{padding:[40,40]});
-var el=last.time-points[0].time,avg=el>0?totalDist/(el/3600000):0;
-toast(‘✅ ‘+totalDist.toFixed(2)+’ km · ‘+fmtTL(el)+’ · 均速’+avg.toFixed(1)+‘km/h’,6000);
-}else{toast(‘⚠️ 点位太少，请检查定位权限’);}
+  tone([880,550,330],0.11,'triangle',0.18);flash('btn-stop','■ 已停止');
+  if(watchId!==null){navigator.geolocation.clearWatch(watchId);watchId=null;}
+  clearInterval(backupTimer);backupTimer=null;
+  clearInterval(timerIv);timerIv=null;
+  stopSilent();relWake();
+  tracking=false;
+  document.getElementById('status-dot').className='off';setMode('已停止');setBtns('done');
+  if(points.length>=2){
+    var last=points[points.length-1];
+    mEnd=L.marker([last.lat,last.lng],{icon:mkIco('#ff4757',13)}).addTo(map).bindPopup('终点').openPopup();
+    map.fitBounds(polyline.getBounds(),{padding:[40,40]});
+    var el=last.time-points[0].time,avg=el>0?totalDist/(el/3600000):0;
+    toast('✅ '+totalDist.toFixed(2)+' km · '+fmtTL(el)+' · 均速'+avg.toFixed(1)+'km/h',6000);
+  }else{toast('⚠️ 点位太少，请检查定位权限');}
 }
 
 function cmdSave(){
-if(points.length<2){toast(‘点位不足’);return;}
-tone([523,659,784,1047],0.09,‘sine’,0.15);flash(‘btn-save’,‘✓ 已保存’);
-var el=points[points.length-1].time-points[0].time;
-var rec={id:Date.now().toString(),date:new Date().toLocaleString(‘zh-CN’),distance:totalDist,duration:el,points:points.slice()};
-var arr=loadRoutes();arr.unshift(rec);localStorage.setItem(‘routes’,JSON.stringify(arr));
-toast(‘✅ 路线已保存！’);document.getElementById(‘btn-save’).disabled=true;
+  if(points.length<2){toast('点位不足');return;}
+  tone([523,659,784,1047],0.09,'sine',0.15);flash('btn-save','✓ 已保存');
+  var el=points[points.length-1].time-points[0].time;
+  var rec={id:Date.now().toString(),date:new Date().toLocaleString('zh-CN'),distance:totalDist,duration:el,points:points.slice()};
+  var arr=loadRoutes();arr.unshift(rec);localStorage.setItem('routes',JSON.stringify(arr));
+  toast('✅ 路线已保存！');document.getElementById('btn-save').disabled=true;
 }
 
 function cmdReset(){
-tone([280],0.18,‘square’,0.10);
-if(watchId!==null){navigator.geolocation.clearWatch(watchId);watchId=null;}
-clearInterval(backupTimer);backupTimer=null;
-clearInterval(timerIv);timerIv=null;
-stopSilent();relWake();
-tracking=false;points=[];totalDist=0;lastPtTime=0;
-[polyline,mStart,mEnd,mCur].forEach(function(l){if(l)map.removeLayer(l);});
-polyline=mStart=mEnd=mCur=null;
-document.getElementById(‘status-dot’).className=’’;setMode(‘就绪’);
-[‘s-dist’,‘s-time’,‘s-spd’,‘s-pts’].forEach(function(id){document.getElementById(id).textContent=id===‘s-dist’?‘0.00’:id===‘s-time’?‘00:00’:id===‘s-spd’?‘0.0’:‘0’;});
-[‘g-acc’,‘g-time’,‘g-hz’].forEach(function(id){document.getElementById(id).textContent=’—’;});
-setBtns(‘idle’);
+  tone([280],0.18,'square',0.10);
+  if(watchId!==null){navigator.geolocation.clearWatch(watchId);watchId=null;}
+  clearInterval(backupTimer);backupTimer=null;
+  clearInterval(timerIv);timerIv=null;
+  stopSilent();relWake();
+  tracking=false;points=[];totalDist=0;lastPtTime=0;
+  [polyline,mStart,mEnd,mCur].forEach(function(l){if(l)map.removeLayer(l);});
+  polyline=mStart=mEnd=mCur=null;
+  document.getElementById('status-dot').className='';setMode('就绪');
+  ['s-dist','s-time','s-spd','s-pts'].forEach(function(id){document.getElementById(id).textContent=id==='s-dist'?'0.00':id==='s-time'?'00:00':id==='s-spd'?'0.0':'0';});
+  ['g-acc','g-time','g-hz'].forEach(function(id){document.getElementById(id).textContent='—';});
+  setBtns('idle');
 }
 
 /* ===== HISTORY ===== */
-function loadRoutes(){try{return JSON.parse(localStorage.getItem(‘routes’)||’[]’);}catch(e){return[];}}
+function loadRoutes(){try{return JSON.parse(localStorage.getItem('routes')||'[]');}catch(e){return[];}}
 var hPoly=null,hMark=[];
 function clearHL(){if(hPoly){map.removeLayer(hPoly);hPoly=null;}hMark.forEach(function(m){map.removeLayer(m);});hMark=[];}
 
 function openHistory(){
-document.getElementById(‘history-panel’).classList.add(‘open’);
-var list=document.getElementById(‘hist-list’),routes=loadRoutes();
-if(!routes.length){list.innerHTML=’<div style="color:var(--muted);text-align:center;padding:40px;font-size:14px;">暂无保存的路线</div>’;return;}
-list.innerHTML=’’;
-routes.forEach(function(r,i){
-var el=r.duration||0,avg=el>0?(r.distance/(el/3600000)).toFixed(1):’—’;
-var div=document.createElement(‘div’);div.className=‘hitem’;
-div.innerHTML=’<div class="hitem-top"><span class="hitem-name">路线’+(routes.length-i)+’</span><div style="display:flex;align-items:center;gap:8px;"><span class="hitem-date">’+r.date+’</span><button class="hdel" onclick="delRoute(\''+r.id+'\',event)">删除</button></div></div><div class="hitem-stats"><div class="hs">📏 ‘+r.distance.toFixed(2)+’ <span>km</span></div><div class="hs">⏱ ‘+fmtTL(el)+’</div><div class="hs">🔵 ‘+r.points.length+’ <span>点</span></div><div class="hs">⚡ ‘+avg+’ <span>km/h</span></div></div>’;
-div.addEventListener(‘click’,function(e){if(e.target.classList.contains(‘hdel’))return;viewRoute(r);});
-list.appendChild(div);
-});
+  document.getElementById('history-panel').classList.add('open');
+  var list=document.getElementById('hist-list'),routes=loadRoutes();
+  if(!routes.length){list.innerHTML='<div style="color:var(--muted);text-align:center;padding:40px;font-size:14px;">暂无保存的路线</div>';return;}
+  list.innerHTML='';
+  routes.forEach(function(r,i){
+    var el=r.duration||0,avg=el>0?(r.distance/(el/3600000)).toFixed(1):'—';
+    var div=document.createElement('div');div.className='hitem';
+    div.innerHTML='<div class="hitem-top"><span class="hitem-name">路线'+(routes.length-i)+'</span><div style="display:flex;align-items:center;gap:8px;"><span class="hitem-date">'+r.date+'</span><button class="hdel" onclick="delRoute(\''+r.id+'\',event)">删除</button></div></div><div class="hitem-stats"><div class="hs">📏 '+r.distance.toFixed(2)+' <span>km</span></div><div class="hs">⏱ '+fmtTL(el)+'</div><div class="hs">🔵 '+r.points.length+' <span>点</span></div><div class="hs">⚡ '+avg+' <span>km/h</span></div></div>';
+    div.addEventListener('click',function(e){if(e.target.classList.contains('hdel'))return;viewRoute(r);});
+    list.appendChild(div);
+  });
 }
-function closeHistory(){document.getElementById(‘history-panel’).classList.remove(‘open’);}
+function closeHistory(){document.getElementById('history-panel').classList.remove('open');}
 function viewRoute(r){
-closeHistory();clearHL();if(r.points.length<2)return;
-var lls=r.points.map(function(p){return[p.lat,p.lng];});
-hPoly=L.polyline(lls,{color:’#00b8ff’,weight:4,opacity:.9}).addTo(map);
-hMark=[L.marker(lls[0],{icon:mkIco(’#00b8ff’,13)}).addTo(map).bindPopup(‘起点’).openPopup(),L.marker(lls[lls.length-1],{icon:mkIco(’#ff4757’,13)}).addTo(map).bindPopup(‘终点’)];
-map.fitBounds(hPoly.getBounds(),{padding:[50,50]});
-toast(’📍 ‘+r.distance.toFixed(2)+’ km · ’+fmtTL(r.duration));
+  closeHistory();clearHL();if(r.points.length<2)return;
+  var lls=r.points.map(function(p){return[p.lat,p.lng];});
+  hPoly=L.polyline(lls,{color:'#00b8ff',weight:4,opacity:.9}).addTo(map);
+  hMark=[L.marker(lls[0],{icon:mkIco('#00b8ff',13)}).addTo(map).bindPopup('起点').openPopup(),L.marker(lls[lls.length-1],{icon:mkIco('#ff4757',13)}).addTo(map).bindPopup('终点')];
+  map.fitBounds(hPoly.getBounds(),{padding:[50,50]});
+  toast('📍 '+r.distance.toFixed(2)+' km · '+fmtTL(r.duration));
 }
 function delRoute(id,e){
-e.stopPropagation();if(!confirm(‘确定删除？’))return;
-localStorage.setItem(‘routes’,JSON.stringify(loadRoutes().filter(function(r){return r.id!==id;})));
-openHistory();
+  e.stopPropagation();if(!confirm('确定删除？'))return;
+  localStorage.setItem('routes',JSON.stringify(loadRoutes().filter(function(r){return r.id!==id;})));
+  openHistory();
 }
 
 /* ===== INIT ===== */
-setBtns(‘idle’);
+setBtns('idle');
 navigator.geolocation&&navigator.geolocation.getCurrentPosition(function(p){map.setView([p.coords.latitude,p.coords.longitude],16);},function(){});
 </script>
-
 </body>
 </html>
